@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model DoorState {
+  id    Int    @id @default(autoincrement())
+  state String
+  createdAt DateTime @default(now())
+}
+
+model TempHumi {
+  id          Int      @id @default(autoincrement())
+  temperature Float?
+  humidity    Float?
+  updatedTime DateTime @default(now()) @map("updated_time")
+}
+
+model User {
+  id      Int    @id @default(autoincrement())
+  cardNum String @unique @map("card_num")
+}
