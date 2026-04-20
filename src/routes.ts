@@ -21,8 +21,8 @@ router.get("/cards", async (_req, res) => {
 });
 
 router.post("/cards", async (req, res) => {
-  const cardNum = req.body.cardNum || req.query.cardNum;
-  if (!cardNum || typeof cardNum !== "string") {
+  const cardNum = (req.body.cardNum || req.query.cardNum || "").toString().trim().toUpperCase();
+  if (!cardNum) {
     return res.status(400).json({ error: "cardNum is required" });
   }
   try {
@@ -30,6 +30,38 @@ router.post("/cards", async (req, res) => {
     return res.status(201).json(user);
   } catch (error) {
     return res.status(400).json({ error: "Unable to create card", detail: error });
+  }
+});
+
+router.put("/cards/:cardNum", async (req, res) => {
+  const currentCardNum = (req.params.cardNum || "").toString().trim().toUpperCase();
+  const nextCardNum = (req.body.cardNum || req.query.cardNum || "").toString().trim().toUpperCase();
+
+  if (!currentCardNum || !nextCardNum) {
+    return res.status(400).json({ error: "current and new cardNum are required" });
+  }
+
+  try {
+    const updated = await prisma.user.update({
+      where: { cardNum: currentCardNum },
+      data: { cardNum: nextCardNum }
+    });
+    return res.json(updated);
+  } catch (error) {
+    return res.status(400).json({ error: "Unable to update card", detail: error });
+  }
+});
+
+router.delete("/cards/:cardNum", async (req, res) => {
+  const cardNum = (req.params.cardNum || "").toString().trim().toUpperCase();
+  if (!cardNum) {
+    return res.status(400).json({ error: "cardNum is required" });
+  }
+  try {
+    await prisma.user.delete({ where: { cardNum } });
+    return res.status(204).send();
+  } catch (error) {
+    return res.status(400).json({ error: "Unable to delete card", detail: error });
   }
 });
 
