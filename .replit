@@ -32,3 +32,9 @@ args = "HOST=127.0.0.1 PORT=3000 npm run dev"
 deploymentTarget = "autoscale"
 run = ["bash", "-c", "HOST=0.0.0.0 PORT=5000 node dist/index.js"]
 build = ["bash", "-c", "npx prisma generate && npm run build"]
+
+[userenv]
+
+[userenv.shared]
+APP_BASE_URL = "https://smart-farm-backend--naingminhan.replit.app"
+SERVER_PORT = "4000"
