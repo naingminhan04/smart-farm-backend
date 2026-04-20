@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Request, Response, Router } from "express";
 import { prisma } from "./prisma.js";
 
 const router = Router();
@@ -38,7 +38,7 @@ router.get("/door-state", async (_req, res) => {
   res.json({ state: latest?.state ?? "OFF" });
 });
 
-async function saveDoorState(req, res) {
+async function saveDoorState(req: Request, res: Response) {
   const state = req.body.state || req.query.state;
   if (!state || (state !== "ON" && state !== "OFF")) {
     return res.status(400).json({ error: "state must be ON or OFF" });
@@ -54,7 +54,7 @@ async function saveDoorState(req, res) {
 router.post("/door-state", saveDoorState);
 router.put("/door-state", saveDoorState);
 
-async function saveTempHumiRecord(req, res) {
+async function saveTempHumiRecord(req: Request, res: Response) {
   const temperature = Number(req.body.temperature ?? req.query.temperature);
   const humidity = Number(req.body.humidity ?? req.query.humidity);
 
@@ -73,7 +73,7 @@ async function saveTempHumiRecord(req, res) {
       select: { id: true }
     });
     await prisma.tempHumi.deleteMany({
-      where: { id: { in: oldest.map((row) => row.id) } }
+      where: { id: { in: oldest.map((row: { id: number }) => row.id) } }
     });
   }
 
