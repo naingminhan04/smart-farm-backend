@@ -62,19 +62,34 @@ async function saveTempHumiRecord(req: Request, res: Response) {
     return res.status(400).json({ error: "temperature and humidity are required" });
   }
 
-  const record = await prisma.tempHumi.create({ data: { temperature, humidity } });
   const totalCount = await prisma.tempHumi.count();
+  let record;
 
-  if (totalCount > 25) {
-    const excess = totalCount - 25;
+  if (totalCount >= 25) {
+    if (totalCount > 25) {
+      const newestRows = await prisma.tempHumi.findMany({
+        orderBy: [{ updatedTime: "desc" }, { id: "desc" }],
+        take: 25,
+        select: { id: true }
+      });
+      const newestIds = newestRows.map((row: { id: number }) => row.id);
+      await prisma.tempHumi.deleteMany({
+        where: { id: { notIn: newestIds } }
+      });
+    }
+
     const oldest = await prisma.tempHumi.findMany({
-      orderBy: { id: "asc" },
-      take: excess,
+      orderBy: [{ updatedTime: "asc" }, { id: "asc" }],
+      take: 1,
       select: { id: true }
     });
-    await prisma.tempHumi.deleteMany({
-      where: { id: { in: oldest.map((row: { id: number }) => row.id) } }
+
+    record = await prisma.tempHumi.update({
+      where: { id: oldest[0].id },
+      data: { temperature, humidity, updatedTime: new Date() }
     });
+  } else {
+    record = await prisma.tempHumi.create({ data: { temperature, humidity } });
   }
 
   res.json(record);
@@ -89,24 +104,13 @@ router.get("/temp-humi/latest", async (_req, res) => {
 });
 
 router.get("/temp-humi/history", async (req, res) => {
-  const limit = Number(req.query.limit ?? 30);
+  const requestedLimit = Number(req.query.limit ?? 25);
+  const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 25) : 25;
   const data = await prisma.tempHumi.findMany({
     orderBy: { updatedTime: "desc" },
     take: limit
   });
   res.json(data.reverse());
-});
-
-router.post("/temp-humi", async (req, res) => {
-  const temperature = Number(req.body.temperature ?? req.query.temperature);
-  const humidity = Number(req.body.humidity ?? req.query.humidity);
-
-  if (Number.isNaN(temperature) || Number.isNaN(humidity)) {
-    return res.status(400).json({ error: "temperature and humidity are required" });
-  }
-
-  const record = await prisma.tempHumi.create({ data: { temperature, humidity } });
-  res.json(record);
 });
 
 export const apiRouter = router;
