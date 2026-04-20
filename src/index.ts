@@ -3,7 +3,8 @@ import cors from "cors";
 import { apiRouter } from "./routes.js";
 
 const app = express();
-const port = Number(process.env.PORT || 4000);
+const port = Number(process.env.PORT || process.env.SERVER_PORT || 4000);
+const host = process.env.HOST || "127.0.0.1";
 
 app.use(cors());
 app.use(express.json());
@@ -13,6 +14,6 @@ app.get("/", (_req, res) => {
   res.send({ message: "Smart Farm Express API is running" });
 });
 
-app.listen(port, () => {
-  console.log(`Server listening on http://localhost:${port}`);
+app.listen(port, host, () => {
+  console.log(`Server listening on http://${host}:${port}`);
 });
