@@ -1,7 +1,10 @@
 import { Request, Response, Router } from "express";
 import { prisma } from "./prisma.js";
+import { adminRouter, requireAdmin } from "./adminAuth.js";
 
 const router = Router();
+
+router.use("/admin", adminRouter);
 
 router.get("/status", async (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
@@ -20,7 +23,7 @@ router.get("/cards", async (_req, res) => {
   res.json(cards.map((item: { cardNum: string }) => item.cardNum));
 });
 
-router.post("/cards", async (req, res) => {
+router.post("/cards", requireAdmin, async (req, res) => {
   const cardNum = (req.body.cardNum || req.query.cardNum || "").toString().trim().toUpperCase();
   if (!cardNum) {
     return res.status(400).json({ error: "cardNum is required" });
@@ -33,7 +36,7 @@ router.post("/cards", async (req, res) => {
   }
 });
 
-router.put("/cards/:cardNum", async (req, res) => {
+router.put("/cards/:cardNum", requireAdmin, async (req, res) => {
   const currentCardNum = (req.params.cardNum || "").toString().trim().toUpperCase();
   const nextCardNum = (req.body.cardNum || req.query.cardNum || "").toString().trim().toUpperCase();
 
@@ -52,7 +55,7 @@ router.put("/cards/:cardNum", async (req, res) => {
   }
 });
 
-router.delete("/cards/:cardNum", async (req, res) => {
+router.delete("/cards/:cardNum", requireAdmin, async (req, res) => {
   const cardNum = (req.params.cardNum || "").toString().trim().toUpperCase();
   if (!cardNum) {
     return res.status(400).json({ error: "cardNum is required" });
@@ -83,8 +86,8 @@ async function saveDoorState(req: Request, res: Response) {
   res.json(doorState);
 }
 
-router.post("/door-state", saveDoorState);
-router.put("/door-state", saveDoorState);
+router.post("/door-state", requireAdmin, saveDoorState);
+router.put("/door-state", requireAdmin, saveDoorState);
 
 async function saveTempHumiRecord(req: Request, res: Response) {
   const temperature = Number(req.body.temperature ?? req.query.temperature);

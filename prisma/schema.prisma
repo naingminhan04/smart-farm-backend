@@ -23,3 +23,30 @@ model User {
   id      Int    @id @default(autoincrement())
   cardNum String @unique @map("card_num")
 }
+
+model Admin {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String   @map("password_hash")
+  tokenVersion Int      @default(0) @map("token_version")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  sessions AdminSession[]
+}
+
+model AdminSession {
+  id               String   @id @default(uuid())
+  adminId          Int      @map("admin_id")
+  refreshTokenHash String   @unique @map("refresh_token_hash")
+  adminTokenVersion Int     @map("admin_token_version")
+  createdAt        DateTime @default(now()) @map("created_at")
+  expiresAt        DateTime @map("expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  userAgent        String?  @map("user_agent")
+  ip               String?  @map("ip")
+
+  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+}
