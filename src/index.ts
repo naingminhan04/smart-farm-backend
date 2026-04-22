@@ -6,7 +6,23 @@ const app = express();
 const port = Number(process.env.PORT || process.env.SERVER_PORT || 4000);
 const host = process.env.HOST || "127.0.0.1";
 
-app.use(cors());
+const allowedOrigins = (process.env.FRONTEND_URL || "")
+  .split(",")
+  .map((origin) => origin.trim().replace(/\/$/, ""))
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.length === 0) return callback(null, true);
+      const normalized = origin.replace(/\/$/, "");
+      if (allowedOrigins.includes(normalized)) return callback(null, true);
+      return callback(new Error("Origin not allowed"));
+    },
+    credentials: true
+  })
+);
 app.use(express.json());
 app.use("/api", apiRouter);
 

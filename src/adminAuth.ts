@@ -51,7 +51,7 @@ function safeEqual(a: string, b: string) {
   return crypto.timingSafeEqual(aBuf, bBuf);
 }
 
-async function issueTokens(admin: { id: number; tokenVersion: number }, req: Request) {
+export async function issueTokens(admin: { id: number; tokenVersion: number }, req: Request) {
   const jwtSecret = getJwtSecret();
   if (!jwtSecret) {
     throw new Error("JWT_SECRET missing or too short (min 32 chars)");
@@ -197,7 +197,7 @@ adminRouter.post("/login", loginLimiter, async (req, res) => {
   });
 
   // Keep error message generic to avoid user enumeration.
-  if (!admin) return res.status(401).json({ error: "Invalid credentials" });
+  if (!admin || !admin.passwordHash) return res.status(401).json({ error: "Invalid credentials" });
   const ok = await bcrypt.compare(password, admin.passwordHash);
   if (!ok) return res.status(401).json({ error: "Invalid credentials" });
 

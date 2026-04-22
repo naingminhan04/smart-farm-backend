@@ -27,12 +27,28 @@ model User {
 model Admin {
   id           Int      @id @default(autoincrement())
   username     String   @unique
-  passwordHash String   @map("password_hash")
+  email        String?  @unique
+  passwordHash String?  @map("password_hash")
   tokenVersion Int      @default(0) @map("token_version")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  sessions AdminSession[]
+  sessions   AdminSession[]
+  identities AdminIdentity[]
+}
+
+model AdminIdentity {
+  id              Int      @id @default(autoincrement())
+  adminId         Int      @map("admin_id")
+  provider        String
+  providerSubject String   @map("provider_subject")
+  email           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerSubject])
+  @@index([adminId])
 }
 
 model AdminSession {

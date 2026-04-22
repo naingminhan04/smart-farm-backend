@@ -1,10 +1,12 @@
 import { Request, Response, Router } from "express";
 import { prisma } from "./prisma.js";
 import { adminRouter, requireAdmin } from "./adminAuth.js";
+import { oauthRouter } from "./oauth.js";
 
 const router = Router();
 
 router.use("/admin", adminRouter);
+router.use("/auth", oauthRouter);
 
 router.get("/status", async (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
