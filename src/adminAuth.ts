@@ -239,15 +239,7 @@ const refreshLimiter = rateLimit({
 
 export const adminRouter = Router();
 
-async function bootstrapFirstAdmin(req: Request, res: Response) {
-  const setupToken = process.env.ADMIN_SETUP_TOKEN?.trim();
-  if (!setupToken) return res.status(503).json({ error: "Admin setup is not configured" });
-
-  const providedToken = (req.body?.token ?? "").toString();
-  if (!providedToken || !safeEqual(providedToken, setupToken)) {
-    return res.status(401).json({ error: "Invalid setup token" });
-  }
-
+async function registerAdmin(req: Request, res: Response) {
   const username = (req.body?.username ?? "").toString().trim();
   const password = (req.body?.password ?? "").toString();
   if (username.length < 3 || username.length > 64) {
@@ -257,9 +249,9 @@ async function bootstrapFirstAdmin(req: Request, res: Response) {
     return res.status(400).json({ error: "password must be at least 10 chars" });
   }
 
-  const existing = await prisma.admin.count();
-  if (existing > 0) {
-    return res.status(409).json({ error: "Admin already exists" });
+  const existing = await prisma.admin.findUnique({ where: { username } });
+  if (existing) {
+    return res.status(409).json({ error: "Username already taken" });
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
@@ -272,12 +264,8 @@ async function bootstrapFirstAdmin(req: Request, res: Response) {
   return res.status(201).json({ admin: { id: admin.id, username: admin.username }, ...tokens });
 }
 
-// Bootstrap endpoint: only works if there are no admins yet.
-// Protect it with an out-of-band token set in env ADMIN_SETUP_TOKEN.
-adminRouter.post("/setup", loginLimiter, bootstrapFirstAdmin);
-
-// Alias for frontend "Sign up" tab.
-adminRouter.post("/register", loginLimiter, bootstrapFirstAdmin);
+adminRouter.post("/setup", loginLimiter, registerAdmin);
+adminRouter.post("/register", loginLimiter, registerAdmin);
 
 adminRouter.post("/login", loginLimiter, async (req, res) => {
   const username = (req.body?.username ?? "").toString().trim();
