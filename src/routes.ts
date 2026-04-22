@@ -12,14 +12,6 @@ router.get("/status", async (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-router.get("/config", async (_req, res) => {
-  res.json({
-    ssid: process.env.ESP_WIFI_SSID ?? null,
-    password: process.env.ESP_WIFI_PASSWORD ?? null,
-    apiBaseUrl: process.env.APP_BASE_URL ?? null
-  });
-});
-
 router.get("/cards", async (_req, res) => {
   const cards = await prisma.user.findMany({ select: { cardNum: true } });
   res.json(cards.map((item: { cardNum: string }) => item.cardNum));
