@@ -66,3 +66,23 @@ model AdminSession {
 
   @@index([adminId])
 }
+
+model AdminOAuthState {
+  id            String   @id
+  provider      String
+  createdAt     DateTime @default(now()) @map("created_at")
+  expiresAt     DateTime @map("expires_at")
+  bootstrapToken String? @map("bootstrap_token")
+
+  @@index([provider])
+  @@index([expiresAt])
+}
+
+model AdminBootstrapToken {
+  id        String   @id
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+
+  @@index([expiresAt])
+}
