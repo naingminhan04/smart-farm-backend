@@ -245,8 +245,8 @@ async function registerAdmin(req: Request, res: Response) {
   if (username.length < 3 || username.length > 64) {
     return res.status(400).json({ error: "username must be 3-64 chars" });
   }
-  if (password.length < 10) {
-    return res.status(400).json({ error: "password must be at least 10 chars" });
+  if (password.length < 8) {
+    return res.status(400).json({ error: "password must be at least 8 chars" });
   }
 
   const existing = await prisma.admin.findUnique({ where: { username } });
