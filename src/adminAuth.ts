@@ -8,6 +8,7 @@ import { prisma } from "./prisma.js";
 
 type AccessTokenPayload = {
   sub: string; // admin id
+  sid: string; // admin session id
   typ: "admin_access";
   ver: number; // admin tokenVersion at issuance
   iat: number;
@@ -153,26 +154,15 @@ export async function issueTokens(admin: { id: number; tokenVersion: number }, r
   }
 
   const accessTtlSeconds = parseDurationSeconds(process.env.JWT_ACCESS_TTL, 15 * 60);
-  const refreshTtlSeconds = parseDurationSeconds(process.env.JWT_REFRESH_TTL, 30 * 24 * 60 * 60);
+  const refreshTtlSeconds = parseDurationSeconds(process.env.JWT_REFRESH_TTL, 14 * 24 * 60 * 60);
 
-  const nowSeconds = Math.floor(Date.now() / 1000);
-  const accessToken = jwt.sign(
-    { sub: String(admin.id), typ: "admin_access", ver: admin.tokenVersion } satisfies Omit<
-      AccessTokenPayload,
-      "iat" | "exp"
-    >,
-    jwtSecret,
-    { expiresIn: accessTtlSeconds }
-  );
-
-  const refreshToken = randomToken();
-  const refreshTokenHash = sha256Base64Url(refreshToken);
-
-  const expiresAt = new Date(Date.now() + refreshTtlSeconds * 1000);
   const ip = req.ip || null;
   const userAgent = req.get("user-agent") || null;
 
-  await prisma.adminSession.create({
+  const refreshToken = randomToken();
+  const refreshTokenHash = sha256Base64Url(refreshToken);
+  const expiresAt = new Date(Date.now() + refreshTtlSeconds * 1000);
+  const session = await prisma.adminSession.create({
     data: {
       adminId: admin.id,
       refreshTokenHash,
@@ -180,8 +170,20 @@ export async function issueTokens(admin: { id: number; tokenVersion: number }, r
       expiresAt,
       ip,
       userAgent
-    }
+    },
+    select: { id: true }
   });
+
+  const accessToken = jwt.sign(
+    {
+      sub: String(admin.id),
+      sid: session.id,
+      typ: "admin_access",
+      ver: admin.tokenVersion
+    } satisfies Omit<AccessTokenPayload, "iat" | "exp">,
+    jwtSecret,
+    { expiresIn: accessTtlSeconds }
+  );
 
   return { accessToken, refreshToken };
 }
@@ -206,17 +208,25 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
     if (!Number.isFinite(adminId)) {
       return res.status(401).json({ error: "Invalid token subject" });
     }
+    if (!decoded.sid) {
+      return res.status(401).json({ error: "Missing session id" });
+    }
 
-    const admin = await prisma.admin.findUnique({
-      where: { id: adminId },
-      select: { id: true, tokenVersion: true }
+    const session = await prisma.adminSession.findUnique({
+      where: { id: decoded.sid },
+      include: { admin: { select: { id: true, tokenVersion: true } } }
     });
-    if (!admin) return res.status(401).json({ error: "Invalid token" });
-    if (admin.tokenVersion !== decoded.ver) {
+    if (!session || session.revokedAt || session.expiresAt <= new Date()) {
+      return res.status(401).json({ error: "Session revoked or expired" });
+    }
+    if (session.adminId !== adminId) {
+      return res.status(401).json({ error: "Invalid token session" });
+    }
+    if (session.admin.tokenVersion !== decoded.ver || session.adminTokenVersion !== decoded.ver) {
       return res.status(401).json({ error: "Token revoked" });
     }
 
-    res.locals.adminId = admin.id;
+    res.locals.adminId = session.admin.id;
     return next();
   } catch {
     return res.status(401).json({ error: "Invalid or expired token" });
