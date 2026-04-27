@@ -3,7 +3,7 @@ import cors from "cors";
 import { apiRouter } from "./routes.js";
 
 const app = express();
-const port = Number(process.env.PORT || process.env.SERVER_PORT || 4000);
+const port = Number(process.env.PORT);
 const host = process.env.HOST || "127.0.0.1";
 
 const allowedOrigins = (process.env.FRONTEND_URL || "")
