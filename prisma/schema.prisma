@@ -86,3 +86,19 @@ model AdminBootstrapToken {
 
   @@index([expiresAt])
 }
+
+model IntruderAlert {
+  id               Int       @id @default(autoincrement())
+  source           String    @default("laser-fence")
+  message          String    @default("Intruder detected by laser fence.")
+  detectedAt       DateTime  @default(now()) @map("detected_at")
+  clearedAt        DateTime? @map("cleared_at")
+  acknowledgedAt   DateTime? @map("acknowledged_at")
+  emergencyDialedAt DateTime? @map("emergency_dialed_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@index([createdAt])
+  @@index([acknowledgedAt])
+  @@index([emergencyDialedAt])
+}
