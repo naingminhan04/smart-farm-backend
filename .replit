@@ -39,7 +39,6 @@ build = ["bash", "-c", "npx prisma generate && npm run build"]
 APP_BASE_URL = "https://smart-farm-backend--naingminhan.replit.app"
 SERVER_PORT = "4000"
 JWT_SECRET = "fhzFWq1flEny98y4iokFjRiwn_-KZbrsS9ZtOqgRVq_I2gWucmQE3B4nAceOJekG"
-ADMIN_SETUP_TOKEN = "YjOBg0FmZyTaUUBvPfxz15ZSB-qRS7acObOCn7-cfjA"
 JWT_ACCESS_TTL = "15m"
 JWT_REFRESH_TTL = "30d"
 FRONTEND_URL = "https://smart-farm-system.netlify.app"
