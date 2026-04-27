@@ -33,8 +33,10 @@ model Admin {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  sessions   AdminSession[]
-  identities AdminIdentity[]
+  sessions             AdminSession[]
+  identities           AdminIdentity[]
+  acknowledgedAlerts   IntruderAlert[] @relation("IntruderAlertAcknowledgedBy")
+  emergencyDialedAlerts IntruderAlert[] @relation("IntruderAlertEmergencyDialedBy")
 }
 
 model AdminIdentity {
@@ -88,17 +90,24 @@ model AdminBootstrapToken {
 }
 
 model IntruderAlert {
-  id               Int       @id @default(autoincrement())
-  source           String    @default("laser-fence")
-  message          String    @default("Intruder detected by laser fence.")
-  detectedAt       DateTime  @default(now()) @map("detected_at")
-  clearedAt        DateTime? @map("cleared_at")
-  acknowledgedAt   DateTime? @map("acknowledged_at")
-  emergencyDialedAt DateTime? @map("emergency_dialed_at")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  id                  Int       @id @default(autoincrement())
+  source              String    @default("laser-fence")
+  message             String    @default("Intruder detected by laser fence.")
+  detectedAt          DateTime  @default(now()) @map("detected_at")
+  clearedAt           DateTime? @map("cleared_at")
+  acknowledgedAt      DateTime? @map("acknowledged_at")
+  acknowledgedById    Int?      @map("acknowledged_by_id")
+  emergencyDialedAt   DateTime? @map("emergency_dialed_at")
+  emergencyDialedById Int?      @map("emergency_dialed_by_id")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  acknowledgedBy   Admin? @relation("IntruderAlertAcknowledgedBy", fields: [acknowledgedById], references: [id], onDelete: SetNull)
+  emergencyDialedBy Admin? @relation("IntruderAlertEmergencyDialedBy", fields: [emergencyDialedById], references: [id], onDelete: SetNull)
 
   @@index([createdAt])
   @@index([acknowledgedAt])
   @@index([emergencyDialedAt])
+  @@index([acknowledgedById])
+  @@index([emergencyDialedById])
 }

@@ -161,6 +161,8 @@ async function pruneIntruderAlertHistory() {
   });
 }
 
+type AdminBrief = { id: number; username: string } | null;
+
 function toIntruderAlertPayload(alert: {
   id: number;
   source: string;
@@ -168,15 +170,27 @@ function toIntruderAlertPayload(alert: {
   detectedAt: Date;
   clearedAt: Date | null;
   acknowledgedAt: Date | null;
+  acknowledgedById: number | null;
   emergencyDialedAt: Date | null;
+  emergencyDialedById: number | null;
   createdAt: Date;
   updatedAt: Date;
+  acknowledgedBy?: AdminBrief;
+  emergencyDialedBy?: AdminBrief;
 }) {
+  const { acknowledgedBy = null, emergencyDialedBy = null, ...rest } = alert;
   return {
-    ...alert,
+    ...rest,
+    acknowledgedBy,
+    emergencyDialedBy,
     requiresAction: !alert.acknowledgedAt && !alert.emergencyDialedAt
   };
 }
+
+const intruderAlertInclude = {
+  acknowledgedBy: { select: { id: true, username: true } },
+  emergencyDialedBy: { select: { id: true, username: true } }
+} as const;
 
 async function getPendingIntruderAlert() {
   return prisma.intruderAlert.findFirst({
@@ -184,7 +198,8 @@ async function getPendingIntruderAlert() {
       acknowledgedAt: null,
       emergencyDialedAt: null
     },
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }]
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    include: intruderAlertInclude
   });
 }
 
@@ -193,7 +208,8 @@ router.get("/intruder-alerts", requireAdmin, async (_req, res) => {
     getPendingIntruderAlert(),
     prisma.intruderAlert.findMany({
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: intruderHistoryLimit
+      take: intruderHistoryLimit,
+      include: intruderAlertInclude
     })
   ]);
 
@@ -241,7 +257,8 @@ router.post("/intruder-alerts/report", async (req, res) => {
           message,
           detectedAt: new Date(),
           clearedAt: null
-        }
+        },
+        include: intruderAlertInclude
       });
       return res.json({ alert: toIntruderAlertPayload(updated), created: false });
     }
@@ -250,7 +267,8 @@ router.post("/intruder-alerts/report", async (req, res) => {
       data: {
         source,
         message
-      }
+      },
+      include: intruderAlertInclude
     });
     await pruneIntruderAlertHistory();
     return res.status(201).json({ alert: toIntruderAlertPayload(created), created: true });
@@ -264,7 +282,8 @@ router.post("/intruder-alerts/report", async (req, res) => {
     where: { id: pendingAlert.id },
     data: {
       clearedAt: pendingAlert.clearedAt ?? new Date()
-    }
+    },
+    include: intruderAlertInclude
   });
   return res.json({ alert: toIntruderAlertPayload(cleared), created: false });
 });
@@ -275,12 +294,16 @@ router.post("/intruder-alerts/:id/acknowledge", requireAdmin, async (req, res) =
     return res.status(400).json({ error: "Invalid alert id" });
   }
 
+  const adminId = Number(res.locals.adminId);
+
   try {
     const alert = await prisma.intruderAlert.update({
       where: { id },
       data: {
-        acknowledgedAt: new Date()
-      }
+        acknowledgedAt: new Date(),
+        acknowledgedById: Number.isFinite(adminId) ? adminId : null
+      },
+      include: intruderAlertInclude
     });
     return res.json(toIntruderAlertPayload(alert));
   } catch (error) {
@@ -294,12 +317,16 @@ router.post("/intruder-alerts/:id/emergency", requireAdmin, async (req, res) => 
     return res.status(400).json({ error: "Invalid alert id" });
   }
 
+  const adminId = Number(res.locals.adminId);
+
   try {
     const alert = await prisma.intruderAlert.update({
       where: { id },
       data: {
-        emergencyDialedAt: new Date()
-      }
+        emergencyDialedAt: new Date(),
+        emergencyDialedById: Number.isFinite(adminId) ? adminId : null
+      },
+      include: intruderAlertInclude
     });
     return res.json(toIntruderAlertPayload(alert));
   } catch (error) {
