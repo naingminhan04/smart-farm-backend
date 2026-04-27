@@ -182,7 +182,9 @@ function toIntruderAlertPayload(alert: {
   return {
     ...rest,
     acknowledgedBy,
+    acknowledgedByUsername: acknowledgedBy?.username ?? null,
     emergencyDialedBy,
+    emergencyDialedByUsername: emergencyDialedBy?.username ?? null,
     requiresAction: !alert.acknowledgedAt && !alert.emergencyDialedAt
   };
 }
