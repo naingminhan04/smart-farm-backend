@@ -4,13 +4,10 @@ import { PrismaClient } from "@prisma/client";
 
 dotenv.config();
 
-const connectionString =
-  process.env.SUPABASE_DATABASE_URL?.trim() ||
-  process.env.SUPABASE_DIRECT_URL?.trim() ||
-  process.env.DATABASE_URL?.trim();
+const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-  throw new Error("Database connection string is missing. Set SUPABASE_DATABASE_URL or DATABASE_URL.");
+  throw new Error("Database connection string is missing");
 }
 
 const adapter = new PrismaPg({ connectionString });
